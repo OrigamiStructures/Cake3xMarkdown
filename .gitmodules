@@ -1,0 +1,3 @@
+[submodule "src/Vendor/php-markdown"]
+	path = src/Vendor/php-markdown
+	url = https://curlyjason@github.com/michelf/php-markdown.git
