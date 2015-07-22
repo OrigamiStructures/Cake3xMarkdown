@@ -1,0 +1,3 @@
+[submodule "src/Vendor/PhpMarkdown"]
+	path = src/Vendor/PhpMarkdown
+	url = https://curlyjason@github.com/OrigamiStructures/php-markdown.git
