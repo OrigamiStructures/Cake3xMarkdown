@@ -13,7 +13,7 @@ use Cake3xMarkdown\Vendor\PhpMarkdown\Michelf\Markdown;
  * CakePHP MarkdownHelper
  * @author jasont
  */
-class MarkdownHelper extends Helper {
+class CakeMarkdownHelper extends Helper {
 	
 	protected $Parser = NULL;
 	
