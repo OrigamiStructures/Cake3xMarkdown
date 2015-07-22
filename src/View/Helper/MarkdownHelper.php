@@ -13,5 +13,5 @@ use Cake\View\Helper;
  * @author jasont
  */
 class MarkdownHelper extends Helper {
-	
+	//Here's a comment
 }
