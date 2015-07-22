@@ -21,6 +21,7 @@ class CakeMarkdownHelper extends Helper {
 	
 	public function __construct(\Cake\View\View $View, array $config = array()) {
 		parent::__construct($View, $config);
+		debug($config);
 		if(isset($config['Geshi'])){
 			$this->Geshi = $config['Geshi'];
 		}
