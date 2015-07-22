@@ -17,6 +17,16 @@ class CakeMarkdownHelper extends Helper {
 	
 	protected $Parser = NULL;
 	
+	protected $Geshi = FALSE;
+	
+	public function __construct(\Cake\View\View $View, array $config = array()) {
+		parent::__construct($View, $config);
+		if(isset($config['Geshi'])){
+			$this->Geshi = $config['Geshi'];
+		}
+	}
+
+
 	/**
 	 * Convert markdown to html
 	 *
@@ -24,13 +34,38 @@ class CakeMarkdownHelper extends Helper {
 	 * @return string
 	 */
 	public function transform($text) {
+		if ($this->Geshi) {
+			return $this->transformGeshi($text);
+		} else {
+			return $this->transformMarkdown($text);
+		}
+		
+	}
+	
+	private function transformMarkdown($text) {
 		if (is_null($this->Parser)) {
-//			if (!class_exists('Markdown')) {
-//				App::import('Vendor', 'Markdown.MarkdownExtra' . DS . 'Michelf' . DS . 'Markdown');
-//			}
 			$this->Parser = new Markdown();
 		}
 		return $this->Parser->transform($text);
 	}
+	
+	private function transformGeshi($text) {
+		$this->exploded_text = explode("```", $text);
+		foreach ($this->exploded_text as $chunk) {
+			$this->handleTextChunk($chunk);
+		}
+	}
+	
+	private function handleTextChunk($chunk) {
+		debug(preg_match("/^\^(a-z0-9\-)/", $chunk));
+	}
+	
+//	private function geshiExtract($text) {
+//		$amended_
+//		$m = explode('```', $text);
+//		foreach ($m as $chunk) {
+//			
+//		}
+//	}
 
 }
