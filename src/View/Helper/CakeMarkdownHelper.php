@@ -54,16 +54,25 @@ class CakeMarkdownHelper extends Helper {
 		$this->exploded_text = preg_split("/```[\n|\r]/", $text);
 //		$this->exploded_text = explode("```", $text);
 		debug(count($this->exploded_text));
+		$result = [];
 		foreach ($this->exploded_text as $chunk) {
-			$this->handleTextChunk($chunk);
+			$result[] = $this->handleTextChunk($chunk);
 		}
+		echo implode("\n", $result);
 	}
 	
 	private function handleTextChunk($chunk) {
 //		debug();
 		if (preg_match("/^[\n|\r]?\^([a-z0-9\-]*)\W{1}/", $chunk, $match)) {
+			array_push($match, str_replace($match[0], '', $chunk));
 			debug($match);
+			if (!empty($match[1])) {
+				return $this->_View->Geshi->parse($chunk, $match[2]);
+			} else {
+				$chunk = "```\n{$match[2]}\n```\n";
+			}
 		}
+		return $this->transformMarkdown($chunk);
 		
 	}
 	
