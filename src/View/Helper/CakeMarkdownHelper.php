@@ -61,7 +61,7 @@ class CakeMarkdownHelper extends Helper {
 	
 	private function handleTextChunk($chunk) {
 //		debug();
-		if (preg_match("/\^\&([a-z0-9\-]*)\W{1}/", $chunk, $match)) {
+		if (preg_match("/^[\n|\r]?\^([a-z0-9\-]*)\W{1}/", $chunk, $match)) {
 			debug($match);
 		}
 		
