@@ -183,7 +183,7 @@ class CakeMarkdownHelper extends Helper {
 	 * So the start delimeter will create 2 array elements, then the code will 
 	 * be in an element, then the end delimeter will be in one array element.
 	 * 
-	 * @param string $delimeter_name
+	 * @param string $delimeter_name start, begin, first, open or some word for the 'end' delimeter
 	 * @param string $regex
 	 * @return array
 	 */
