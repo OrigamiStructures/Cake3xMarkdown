@@ -131,7 +131,7 @@ class CakeMarkdownHelper extends Helper {
 		if (is_null($this->Parser)) {
 			$this->Parser = new Markdown();
 		}
-		$text = is_object($source) ? $source->markdownSource() : $source;
+		$text = is_object($source) ? $source->markdownSource($this) : $source;
 		return $this->Parser->transform($text);
 	}
 	
@@ -155,7 +155,7 @@ class CakeMarkdownHelper extends Helper {
 	 */
 	private function transformMixed($source) {
 		$pattern = '/'.$this->code_start_delimeter.'|'.$this->code_end_delimeter.'/';
-		$text = is_object($source) ? $source->markdownSource() : $source;
+		$text = is_object($source) ? $source->markdownSource($this) : $source;
 		$this->chunked_text = preg_split($pattern, $text, NULL, PREG_SPLIT_DELIM_CAPTURE);
 
 		$result = [];
