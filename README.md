@@ -168,7 +168,7 @@ Install the Geshi plugin as described here. Then modify the Controller’s `$hel
 public $helpers = [‘Form’, ‘Html’, ‘CakePHP3xMarkdown’ => ['helpers' => 'Geshi.Geshi']];
 ```
 
-Calling `CakePHP3xMarkdown::transform() is done exactly as before using either a string or an object depending on your needs. But now if you pass pass your mixed markdown and source code, the code will be highlighted. Here is a mixed content text block illustrating how to delimit your code blocks:
+Calling `CakePHP3xMarkdown::transform()` is done exactly as before using either a string or an object depending on your needs. But now if you pass pass your mixed markdown and source code, the code will be highlighted. Here is a mixed content text block illustrating how to delimit your code blocks:
 
 <pre>
     #This is an example markdown h1
@@ -293,3 +293,34 @@ $this->Geshi->template('Template')->set_overall_style('padding: 1em 1.5em; backg
 
 For more information about the Geshi Plugin and the use of Geshi templates please see the documentation.
 
+##The next level
+
+You can change how code is delimited if you need to. Perhaps you have some markdown that uses some slight variation and you want to use it without modification. Or you want to send more information to the GeshiInterface methods to make sophisticated template selection possible.
+
+<pre>
+    // example of fancy delimiting
+    ```php:plugin
+        // php plugin code here
+    ```
+    ```php:implementation
+        // php implementation code here
+    ```
+</pre>
+
+With these delimiters, your system could use two different templates for php code to help your reader’s better understand your article. But these opening delimiters would not be recognized by the Helper. You can provide new regex to detect your custom delimiters.
+
+```php
+// set a new starting pattern
+$this->CakePHP3xMarkdown->delimiter(‘start’, $start_pattern);
+$this->CakePHP3xMarkdown->delimiter(‘end’, $end_pattern);
+```
+
+See the comments in the source code for details about the construction of delimiters and what they must return to maintain system functionality.
+
+It’s worth noting though that the default delimiters can probably be used to accomplish your needs for exotic parameter passing. The language name is matched by this pattern:
+
+```regex
+[a-z0-9\-]*
+```
+
+There are no Geshi languages that contain double hyphens or digits surrounded by hyphens. So you could make language names like `php--plugin` and `php--implementation`, then have `CakePHP3xMarkdown->geshiTemplate()` and `CakePHP3xMarkdown->geshiLanguage()` parse the values you need.
