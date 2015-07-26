@@ -21,13 +21,36 @@ class CakeMarkdownHelper extends Helper {
 	
 	protected $defaultConfig = ['helpers' => []];
 	
+	/**
+	 * An instance of Markdown
+	 *
+	 * @var object
+	 */
 	protected $Parser = NULL;
 	
+	/**
+	 * Delimeter identifying the start of a source-code block in the markdown
+	 *
+	 * @var regex
+	 */
 	protected $code_start_delimeter = '([\n|\r]```([a-z0-9\-]*)[\n|\r])|^(```([a-z0-9\-^]*)[\n|\r])';
+	
+	/**
+	 * Delimeter identifying the end of a source-code block in the markdown
+	 *
+	 * @var regex
+	 */
 	protected $code_end_delimeter = '([\n|\r]```[\n|\r])';
 	
-	protected $markdownInterface = FALSE;
-	protected $geshiInterface = FALSE;
+	/**
+	 * If Geshi is in play, this will hold the markdown/source code chunks
+	 * 
+	 * The text will be preg_split using the code delimeters
+	 *
+	 * @var array
+	 */
+	protected $chunked_text;
+
 
 	/**
 	 * Construct, optionally with GeshiHelper for code highlighting
@@ -45,74 +68,70 @@ class CakeMarkdownHelper extends Helper {
 	}
 
 	/**
-	 * Choose Markdown only or Geshi+Markdown text processing
+	 * Perform cache-aware, Geshi-aware processing of markdown text
+	 * 
+	 * Pass your markdown text and get the html for output. 
+	 * 
+	 * If the GeshiHelper has been installed, properly delimeted source code 
+	 * in your markdown will be nicely highlighted.
+	 * 
+	 * To use caching of the output you'll need to pass an object instead of 
+	 * a text string. The object must implement the MarkdownInterface.
+	 * 
+	 * To gain greater control over the geshi output you'll need to pass an object 
+	 * that implements the GeshiInterface
 	 *
-	 * @param  object|string $source Text in markdown format or an Entity
+	 * @param  object|string $source Text in markdown format or an object
 	 * @return string
 	 */
 	public function transform($source) {
 		if (is_object($source)) {
-//			debug($source);
-//			debug($source->modified->nice());die;
-			return $this->transformObject($source);
-		} else {
-			return $this->chooseTransform($source);
+			if (!$source instanceof MarkdownInterface) {
+				throw new \BadFunctionCallException(
+						'CakeMarkdown::transform() argument must be an object that implements MardownInterface or a string');
+			}
+			if ($source->markdownCaching()) {
+				$output = Cache::read($source->markdownCacheKey($this), $source->markdownCacheConfig($this));
+				if ($output) {
+					return $output;
+				}
+			}			
 		}
+		$output = $this->chooseTransform($source);
+		if (is_object($source) && $source->markdownCaching()) {
+			Cache::write($source->markdownCacheKey($this), $output, $source->markdownCacheConfig($this));
+		}
+		return $output;
 	}
 	
 	/**
-	 * Deal with the markdown arriving as data in an object
-	 * 
-	 * This option allows the use of output caching and is also the gateway 
-	 * to advance Geshi implementation if Geshi is being used.
-	 * 
-	 * @param MarkdownInterface $source
-	 * @return type
-	 */
-	private function transformObject(MarkdownInterface $source) {
-		if ($source->markdownCaching()) {
-			$output = Cache::read($source->markdownCacheKey(), $source->markdownCacheConfig());
-//			debug($output);die;
-			if ($output === false) {
-				$output = $this->chooseTransform($source->markdownSource());
-				debug(strlen($output));
-				Cache::write($source->markdownCacheKey(), $output, $source->markdownCacheConfig());
-				debug(strlen($output));
-			}
-			debug(strlen($output));
-			return $output;
-		} else {
-			return $this->chooseTransform($source->markdownSource());
-		}
-	}
-
-	/**
-	 * Take raw text and route it to the proper processing method
+	 * Route the input for pure-markdown proceesing or mixed markdown-geshi
 	 * 
 	 * If the Geshi Helper is in play, process assuming the markdown has 
 	 * source code in it needing highlighting. Otherwise,do straight markdown.
 	 * 
-	 * @param string $text
-	 * @return string
+	 * @param oject|string $source
+	 * @return object|string
 	 */
-	private function chooseTransform($text) {
+	private function chooseTransform($source) {
 		if ($this->Geshi) {
-			return $this->transformMixed($text);
+			return $this->transformMixed($source);
 		} else {
-			return $this->transformMarkdown($text);
+			return $this->transformMarkdown($source);
 		}
 	}
 
 	/**
 	 * Transform pure markdown
 	 * 
-	 * @param string $text
-	 * @return string
+	 * @param string $source
+	 * @return object|string
 	 */
-	private function transformMarkdown($text) {
+	private function transformMarkdown($source) {
 		if (is_null($this->Parser)) {
 			$this->Parser = new Markdown();
 		}
+		$text = is_object($source) ? $source->markdownSource() : $source;
 		return $this->Parser->transform($text);
 	}
 	
@@ -122,25 +141,27 @@ class CakeMarkdownHelper extends Helper {
 	 * If GeshiHelper is in use the output text will be analized for the presence 
 	 * of source code. The code delimeters are used to split the text into an array.
 	 * The delimeters are designed with capture blocks so that code blocks will 
-	 * become four elements:
-	 *	[first delimeter(FD)][language(L)][source code(SC)][last delimeter(LD)]
+	 * become four array elements:
+	 *	[first delimeter(FD), language(L), source code(SC), last delimeter(LD)]
 	 * Regular markdown text will be in single elements:
 	 *	[non code block(NCB)]
 	 * 
-	 * So a mixed text block will be something like this:
-	 *	'text php-code text sql-code php-code text' would yield 
+	 * So a mixed text block with content in this pattern
+	 *	'text php-code text sql-code php-code text' 
+	 * would yield an array like this
 	 *	[NBC, FD, L, SC, LD, NBC, FD, L, SC, LD,  FD, L, SC, LD, NBC]
 	 * 
-	 * @param string $text The full block for output
+	 * @param object|string $source
 	 */
-	private function transformMixed($text) {
+	private function transformMixed($source) {
 		$pattern = '/'.$this->code_start_delimeter.'|'.$this->code_end_delimeter.'/';
-		$this->exploded_text = preg_split($pattern, $text, NULL, PREG_SPLIT_DELIM_CAPTURE);
+		$text = is_object($source) ? $source->markdownSource() : $source;
+		$this->chunked_text = preg_split($pattern, $text, NULL, PREG_SPLIT_DELIM_CAPTURE);
 
 		$result = [];
-		$end = count($this->exploded_text);
+		$end = count($this->chunked_text);
 		for ($i = 0; $i < $end; $i++) {
-			list ($result[], $i) = $this->handleTextChunk($i);
+			list ($result[], $i) = $this->handleTextChunk($source, $i);
 		}
 		return implode("\n", $result);
 	}
@@ -154,22 +175,45 @@ class CakeMarkdownHelper extends Helper {
 	 * If that is the case, the next element will be the language, the one after 
 	 * that will be the source code to render and after that, the code_end_delimeter.
 	 * 
-	 * @param int $pointer Adjusted to point at the last accessed element
-	 * @return array [output_text, index]
+	 * @param object|string $source
+	 * @param int $pointer
+	 * @return array [output_text, pointer]
 	 */
-	private function handleTextChunk($pointer) {
+	private function handleTextChunk($source, $pointer) {
 		
-		if (preg_match("/$this->code_start_delimeter/", $this->exploded_text[$pointer])) {
-			// code sequence in the array will be
-			// start-delimeter, language, source-code, end-delimeter
-			$language = $this->exploded_text[++$pointer];
-			$source_code = $this->exploded_text[++$pointer];
-			return [$this->Geshi->parse($source_code, $language), ++$pointer]; // pointer moved to target the end delimeter
+		if (preg_match("/$this->code_start_delimeter/", $this->chunked_text[$pointer])) {
+			$code_chunk = [$this->chunked_text[$pointer],
+				$this->chunked_text[++$pointer],
+				$this->chunked_text[++$pointer],
+				$this->chunked_text[++$pointer]];
+			return [$this->transformGeshi($source, $code_chunk), $pointer];
 		}
-		return [$this->transformMarkdown($this->exploded_text[$pointer]), $pointer];
+		return [$this->transformMarkdown($this->chunked_text[$pointer]), $pointer];
 	}
 	
 	/**
+	 * Delegate processing of source-code to the GeshiHelper
+	 * 
+	 * If a string was supplied as input, just accept Geshi defaults
+	 * 
+	 * If an object was supplied and it implements GeshiInterface, a template 
+	 * will be used and that can contain custom formatting
+	 * 
+	 * @param object|string $source
+	 * @param array $code_chunk
+	 * @return string
+	 */
+	private function transformGeshi($source, $code_chunk) {
+		list($start_delimeter, $language, $source_code, $end_delimeter) = $code_chunk;
+		if (is_object($source) && $source instanceof GeshiInterface) {
+			$template = ucfirst($source->geshiTemplate($code_chunk));
+			$make_method = "make$template";
+			return $this->Geshi->$make_method($source_code, $source->geshiLanguage($code_chunk))->parse_code();
+		}
+		return $this->Geshi->parse($source_code, $language);
+	}
+
+		/**
 	 * Modify the code-block detection delimeters
 	 * 
 	 * Pass no arguements to see the current delimeters.
@@ -210,7 +254,7 @@ class CakeMarkdownHelper extends Helper {
 	 * So the start delimeter will create 2 array elements, then the code will 
 	 * be in an element, then the end delimeter will be in one array element.
 	 * 
-	 * @param string $delimeter_name start, begin, first, open or some word for the 'end' delimeter
+	 * @param string $delimeter_name
 	 * @param string $regex
 	 * @return array
 	 */
