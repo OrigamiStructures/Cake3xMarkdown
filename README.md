@@ -161,19 +161,19 @@ With this setup your article output will be cached for 1 week or until `articles
 
 Markdown is a bit limited if you’re text contains source code. This article is a perfect example of the mixed content situation. There is an excellent PHP source-code highlighting utility, GeSHi, that can correct this deficit. I’ve written the GeshiHelper plugin to directly output highlighted source code in your pages. But I’ve also integrated that plugin into CakePHP3xMarkdown to provide a seamless way to render your markdown which also contains source code.
 
-Install the Geshi plugin as described here. then modify the Controller’s `$helpers` property to use the Geshi plugin.
+Install the Geshi plugin as described here. Then modify the Controller’s `$helpers` property to use the Geshi plugin.
 
 ```php
 // src/Controllers/ArticlesController.php
 public $helpers = [‘Form’, ‘Html’, ‘CakePHP3xMarkdown’ => ['helpers' => 'Geshi.Geshi']];
 ```
 
-Now, if you are using the simple installation described first, you can pass your mixed markdown and source code as a string as before as in this example:
+Calling `CakePHP3xMarkdown::transform() is done exactly as before using either a string or an object depending on your needs. But now if you pass pass your mixed markdown and source code, the code will be highlighted. Here is a mixed content text block illustrating how to delimit your code blocks:
 
 <pre>
-    #This is an example
+    #This is an example markdown h1
         
-    This is standard markdown
+    This is example markdown paragraph
     
     - this
     - is
@@ -193,27 +193,103 @@ Now, if you are using the simple installation described first, you can pass your
     ```
 </pre>
 
-The default delimiters for code blocks are the same as used on github. Open the block on a new line with 3 backticks (```) followed by the language you want highlighted, then on a new line start your code. End the code block with a new line containing 3 backticks.
+The default delimiters for code blocks are the same as used on github. Open the block with a new line followed by 3 backticks (```) followed by the name of the language you want highlighted, then on a new line start your code. End the code block with a new line containing 3 backticks.
 
 Geshi supports over 100 languages and allows you to add language support if you need.
 
+Simply call transform with this as a string or an object and you’ll get beautiful mixed-content pages like the one you’re reading now.
 
 ```php
 // src/Templates/Articles/view.ctp
 $this->CakePHP3xMarkdown->transform(article->text);
-```
-
-Or, if you’ve used the advanced techniques to use caching, you simply make the call passing the object rather than the string:
-
-```php
-// src/Templates/Articles/view.ctp
 $this->CakePHP3xMarkdown->transform(article);
 ```
 
-The default Geshi css (which is render in-line in the output HTML) is pretty good. So that may be all you need. But if you want to control the highlighting css to a greater degree you’ll need to pass your entity to `transform()` and add implementation for the GeshiInterface. 
+##Accessing advanced GeSHi features
+
+The default Geshi css (which is render in-line in the output HTML) is pretty good. So that may be all you need. That’s the limit of what you can get by passing a string argument. Passing an object allows you to use an expanded range of GeSHi features like enabling stylesheets or controlling formatting of your rendered code blocks. As with enabling the caching feature, you’ll need to implement an interface in your Entity to use the advanced GeSHi features. 
 
 This is the GeshiInterface you’ll need to support for advanced control of source code rendering:
 
+```php
+<?php
+namespace Cake3xMarkdown\Model\Entity\Interfaces;
 
+/**
+ * Interface 
+ *
+ * @author dondrake
+ */
+interface GeshiInterface {
+    
+    /**
+     * Retrieve the template name to use when rendering the current source code
+     * 
+     * CakePHP3xMarkdown Helper provides a 4 element array at $args. 
+     * I recommend the first line of you function be:
+     *    list($start_delimeter, $language, $source_code, $end_delimeter) = $args;
+     * 
+     * @param type $args
+     */
+    public function geshiTemplate($args);
+    
+    /**
+     * Retrieve the language to use when highlighting the current source code
+     * 
+     * CakePHP3xMarkdown Helper provides a 4 element array at $args. 
+     * I recommend the first line of you function be:
+     *    list($start_delimeter, $language, $source_code, $end_delimeter) = $args;
+     *     
+     * @param type $args
+     */
+    public function geshiLanguage($args);
+    
+}
+```
 
+Here is what you might add to your Entity to implement the new interface:
+
+```php
+<?php
+
+// change your class declaration to
+class Article extends Entity implements MarkdownInterface, GeshiInterface {
+
+// your class properties and methods as before
+// plus these sample implementations of the new interface
+
+    public function geshiTemplate($args) {
+        list($start_delimeter, $language, $source_code, $end_delimeter) = $args;
+        if ($language !== 'bash') {
+            return 'template';
+        } else {
+            return 'bash';
+        }
+    }
+
+    public function geshiLanguage($args) {
+        list($start_delimeter, $language, $source_code, $end_delimeter) = $args;
+        return $language;
+    }
+
+}
+```
+
+To use the enhanced Geshi features you must implement both interfaces, even if you don’t want to cache your output. 
+
+Before calling the `transform()` method you’ll want to create the templates. This can be done anywhere that has access to GeshiHelper. Remember, CakePHP maintains Helpers as Singletons so you can do this on a Geshi helper object outside of the CakePHP3xMarkdown helper and the templates will also be available inside the Markdown helper on its Geshi instance.
+
+```php
+// create a template
+$this->Geshi->template('Template');
+// make changes to how it will render
+$this->Geshi->template('Template')->enable_line_numbers(GESHI_NORMAL_LINE_NUMBERS);
+$this->Geshi->template('Template')->set_overall_style('padding: 1em 1.5em; background-color: wheat');
+
+// now all source code rendered through Template will have a 
+// background color and line numbers. Any other template will
+// have the default formatting.
+```
+
+For more information about the Geshi Plugin and the use of Geshi templates please see the documentation.
 
