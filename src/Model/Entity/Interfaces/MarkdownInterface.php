@@ -10,7 +10,7 @@ interface MarkdownInterface {
 	/**
 	 * Return the markdown text
 	 * 
-	 * @return string The raw markdown text
+	 * @return string The raw text-markdown
 	 */
 	public function markdownSource($options = NULL);
 	
@@ -29,7 +29,7 @@ interface MarkdownInterface {
 	public function markdownCacheKey($options = NULL);
 	
 	/**
-	 * Return the config to use for this cache
+	 * Return the config to use for caching
 	 * 
 	 * @return string Then name of the cache config
 	 */
