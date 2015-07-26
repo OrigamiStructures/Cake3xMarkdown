@@ -1,15 +1,3 @@
-# Cake3xMarkdown plugin for CakePHP
-
-## Installation
-
-You can install this plugin into your CakePHP application using [composer](http://getcomposer.org).
-
-The recommended way to install composer packages is:
-
-```
-composer require your-name-here/Cake3xMarkdown
-```
-
 ##Basic use
 
 To install the CakePHP3xMarkdown plugin modify your bootstrap file:
@@ -180,7 +168,35 @@ Install the Geshi plugin as described here. then modify the Controller’s `$hel
 public $helpers = [‘Form’, ‘Html’, ‘CakePHP3xMarkdown’ => ['helpers' => 'Geshi.Geshi']];
 ```
 
-Now, if you are using the simple installation described first, you can pass your mixed markdown and source code as a string as before
+Now, if you are using the simple installation described first, you can pass your mixed markdown and source code as a string as before as in this example:
+
+<pre>
+    #This is an example
+        
+    This is standard markdown
+    
+    - this
+    - is
+    - a
+    - list
+    
+    ```php
+        // this is a php code block
+        $Thing = new Thing();
+        $a = $Thing->method();
+    ```
+    ```javascript
+        // this is a javascript code block
+        var wonders = ‘never cease’;
+        var prefix = ‘wonders’;
+        var phrase = prefix + ‘ ‘ + wonders;
+    ```
+</pre>
+
+The default delimiters for code blocks are the same as used on github. Open the block on a new line with 3 backticks (```) followed by the language you want highlighted, then on a new line start your code. End the code block with a new line containing 3 backticks.
+
+Geshi supports over 100 languages and allows you to add language support if you need.
+
 
 ```php
 // src/Templates/Articles/view.ctp
@@ -193,5 +209,11 @@ Or, if you’ve used the advanced techniques to use caching, you simply make the
 // src/Templates/Articles/view.ctp
 $this->CakePHP3xMarkdown->transform(article);
 ```
+
+The default Geshi css (which is render in-line in the output HTML) is pretty good. So that may be all you need. But if you want to control the highlighting css to a greater degree you’ll need to pass your entity to `transform()` and add implementation for the GeshiInterface. 
+
+This is the GeshiInterface you’ll need to support for advanced control of source code rendering:
+
+
 
 
