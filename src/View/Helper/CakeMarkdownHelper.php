@@ -205,9 +205,7 @@ class CakeMarkdownHelper extends Helper {
 	 */
 	private function transformGeshi($source, $code_chunk) {
 		list($start_delimeter, $language, $source_code, $end_delimeter) = $code_chunk;
-		debug($source_code);
 		$source_code = trim($source_code, "\n\r");
-		debug($source_code);
 		if (is_object($source) && $source instanceof GeshiInterface) {
 			$template = ucfirst($source->geshiTemplate($code_chunk));
 			$make_method = "make$template";
