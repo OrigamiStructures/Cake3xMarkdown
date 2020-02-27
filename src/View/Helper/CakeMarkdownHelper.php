@@ -260,7 +260,7 @@ class CakeMarkdownHelper extends Helper {
 	 * @return array
 	 */
 	public function delimeter($delimiter_name = NULL, $regex = NULL) {
-		if (is_null($name)) {
+		if (is_null($delimiter_name)) {
 			return ['code_start_delimiter' => $this->code_start_delimiter, 'code_end_delimiter' => $this->code_end_delimiter];
 		}
 		$start_words = ['start', 'begin', 'first', 'open'];
